@@ -1,18 +1,70 @@
-const player1 = {
-  name: "Mario",
-  velocity: 4,
-  curves: 3,
-  power: 3,
-  points: 0,
-};
+const readline = require("node:readline");
 
-const player2 = {
-  name: "Luigi",
-  velocity: 3,
-  curves: 4,
-  power: 4,
-  points: 0,
-};
+const players = [
+  { name: "Mario", velocity: 4, curves: 3, power: 3 },
+  { name: "Peach", velocity: 3, curves: 4, power: 2 },
+  { name: "Yoshi", velocity: 2, curves: 4, power: 3 },
+  { name: "Bowser", velocity: 5, curves: 2, power: 5 },
+  { name: "Luigi", velocity: 3, curves: 4, power: 4 },
+  { name: "Donkey Kong", velocity: 2, curves: 2, power: 5 },
+];
+
+async function selectPlayers() {
+  const input = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  function showMenu() {
+    console.log("Escolha o personagem do player1:");
+    players.forEach((player, index) => {
+      console.log(`${index + 1}. ${player.name}`);
+    });
+    console.log(`Digite um número de 1 a ${players.length}:`);
+  }
+
+  try {
+    let selectedPlayer;
+    showMenu();
+
+    for await (const answer of input) {
+      if (selectedPlayer) {
+        const confirmation = answer.trim().toLowerCase();
+
+        if (["n", "não", "nao"].includes(confirmation)) {
+          selectedPlayer = undefined;
+          showMenu();
+          continue;
+        }
+
+        if (!["s", "sim"].includes(confirmation)) {
+          console.log("Resposta inválida. Confirme com s (sim) ou n (não):");
+          continue;
+        }
+
+        const opponents = players.filter((player) => player !== selectedPlayer);
+        const opponent = opponents[Math.floor(Math.random() * opponents.length)];
+
+        return {
+          player1: { ...selectedPlayer, points: 0 },
+          player2: { ...opponent, points: 0 },
+        };
+      }
+
+      const choice = Number(answer.trim());
+
+      if (!Number.isInteger(choice) || choice < 1 || choice > players.length) {
+        console.log(`Escolha inválida. Digite um número de 1 a ${players.length}:`);
+        continue;
+      }
+
+      selectedPlayer = players[choice - 1];
+      console.log(`Você escolheu ${selectedPlayer.name}. Confirmar escolha? (s/n)`);
+    }
+  } finally {
+    input.close();
+  }
+}
 
 async function rollDice() {
   return Math.floor(Math.random() * 6) + 1;
@@ -65,13 +117,13 @@ async function playRaceEngine(character1, character2) {
       totalTestSkill2 = diceResult2 + character2.velocity;
 
       await logRollResult(
-        player1.name,
+        character1.name,
         "velocidade",
         diceResult1,
         character1.velocity
       );
       await logRollResult(
-        player2.name,
+        character2.name,
         "velocidade",
         diceResult2,
         character2.velocity
@@ -82,13 +134,13 @@ async function playRaceEngine(character1, character2) {
       totalTestSkill2 = diceResult2 + character2.curves;
 
       await logRollResult(
-        player1.name,
+        character1.name,
         "manobrabilidade",
         diceResult1,
         character1.curves
       );
       await logRollResult(
-        player2.name,
+        character2.name,
         "manobrabilidade",
         diceResult2,
         character2.curves
@@ -98,8 +150,8 @@ async function playRaceEngine(character1, character2) {
       let powerResult1 = diceResult1 + character1.power;
       let powerResult2 = diceResult2 + character2.power;
 
-      await logRollResult(player1.name, "poder", diceResult1, character1.power);
-      await logRollResult(player2.name, "poder", diceResult2, character2.power);
+      await logRollResult(character1.name, "poder", diceResult1, character1.power);
+      await logRollResult(character2.name, "poder", diceResult2, character2.power);
 
       if (powerResult1 > powerResult2) {
         if (character2.points > 0) {
@@ -163,6 +215,11 @@ async function declareWinner(character1, character2) {
 }
 
 (async function main() {
+  const selection = await selectPlayers();
+  if (!selection) return;
+
+  const { player1, player2 } = selection;
+
   console.log(
     `🏁 🚨 Corrida entre ${player1.name} e ${player2.name} começando... \n`
   );
